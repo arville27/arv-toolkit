@@ -28,6 +28,10 @@ func NewSpotifyLyricsService(client *http.Client, spDc string, tokenResponseCach
 }
 
 func (s *service) GetLyrics(trackId string) (*splyr.SpotifyLyrics, error) {
+	if len(trackId) != 22 {
+		return nil, splyr.NewSplyrError("Track id must be exactly 22 characters", splyr.InvalidTrackId, nil)
+	}
+
 	tokenResponse, err := s.GetToken()
 	if err != nil {
 		return nil, err
@@ -37,7 +41,10 @@ func (s *service) GetLyrics(trackId string) (*splyr.SpotifyLyrics, error) {
 	formattedUrl := fmt.Sprintf("%s%s?format=json&market=from_token", lyricsUrl, trackId)
 	request, err := http.NewRequest(http.MethodGet, formattedUrl, nil)
 	if err != nil {
-		slog.Error("Failed create a request to get a lyric", "error", err)
+		slog.Error(
+			"Failed create a request to get a lyric",
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
 
@@ -49,25 +56,52 @@ func (s *service) GetLyrics(trackId string) (*splyr.SpotifyLyrics, error) {
 
 	response, err := s.client.Do(request)
 	if err != nil {
-		slog.Error("Failed to get lyrics: %v", err)
+		slog.Error(
+			"Failed to fetch lyrics from spotify server",
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
-	if response.StatusCode != http.StatusOK {
-		slog.Error("Failed to get lyrics", "response", response)
-		return nil, splyr.SplyrError{Reason: "Failed to get lyrics", Cause: err}
-	}
-	defer response.Body.Close()
 
 	responseData, err := io.ReadAll(response.Body)
 	if err != nil {
-		slog.Error("Failed read lyrics response", "error", err)
+		slog.Error(
+			"Failed to read lyrics response",
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
+
+	if response.StatusCode != http.StatusOK {
+		slog.Error(
+			"Received non 200 response from spotify server",
+			slog.Int("code", response.StatusCode),
+			slog.String("status", response.Status),
+			slog.String("body", string(responseData)),
+		)
+		var errorType error
+		var reason string
+		if response.StatusCode == http.StatusNotFound {
+			errorType = splyr.LyricsNotFound
+			reason = fmt.Sprintf("Lyrics with track id %s is not found", trackId)
+		} else if response.StatusCode == http.StatusBadRequest {
+			errorType = splyr.FailedFetchLyrics
+			reason = fmt.Sprintf("Failed to fetch lyrics with track id %s", trackId)
+		} else {
+			errorType = splyr.UnknownError
+			reason = "Received unknown error from Spotify API"
+		}
+		return nil, splyr.NewSplyrError(reason, errorType, nil)
+	}
+	defer response.Body.Close()
 
 	var spotifyLyricsResponse spotifyLyricsResponse
 	err = json.Unmarshal(responseData, &spotifyLyricsResponse)
 	if err != nil {
-		slog.Error("Failed deserialize lyrics response", "error", err)
+		slog.Error(
+			"Failed deserialize lyrics response",
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
 
@@ -105,7 +139,10 @@ func (s *service) GetToken() (*splyr.SpotifyToken, error) {
 	slog.Info("Request new access token")
 	request, err := http.NewRequest(http.MethodGet, tokenUrl, nil)
 	if err != nil {
-		slog.Error("Failed create a request to get a token", "error", err)
+		slog.Error(
+			"Failed create a request to get an access token",
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
 
@@ -118,26 +155,40 @@ func (s *service) GetToken() (*splyr.SpotifyToken, error) {
 
 	response, err := s.client.Do(request)
 	if err != nil {
-		slog.Error("Failed to get access token: %v", err)
+		slog.Error(
+			"Failed while requesting access token",
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
-	if response.StatusCode != http.StatusOK {
-		slog.Error("Failed to get access token", "error", response)
-		return nil, splyr.SplyrError{Reason: "Failed to get access token", Cause: err}
-	}
-	defer response.Body.Close()
 
 	responseData, err := io.ReadAll(response.Body)
 	if err != nil {
-		slog.Error("Failed read access token response", "error", err)
+		slog.Error(
+			"Failed read access token response",
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
-	slog.Debug("Get access token response body", "responseBody", string(responseData))
+
+	if response.StatusCode != http.StatusOK {
+		slog.Error(
+			"Received non 200 response from spotify server",
+			slog.Int("code", response.StatusCode),
+			slog.String("status", response.Status),
+			slog.String("body", string(responseData)),
+		)
+		return nil, splyr.NewSplyrError("Please check your SP_DC value", splyr.FailedRequestingAccessToken, nil)
+	}
+	defer response.Body.Close()
 
 	var spotifyTokenResponse spotifyTokenResponse
 	err = json.Unmarshal(responseData, &spotifyTokenResponse)
 	if err != nil {
-		slog.Error("Failed deserialize access token response", "error", err)
+		slog.Error(
+			"Failed deserialize access token response",
+			slog.String("error", err.Error()),
+		)
 		return nil, err
 	}
 
@@ -147,7 +198,10 @@ func (s *service) GetToken() (*splyr.SpotifyToken, error) {
 	}
 	err = saveTokenResponseCache(s.tokenResponseCachePath, tokenResponse)
 	if err != nil {
-		slog.Error("Failed save access token response to cache", "error", err)
+		slog.Error(
+			"Failed save access token response to cache",
+			slog.String("error", err.Error()),
+		)
 	} else {
 		slog.Debug("Succesfully saving access token response to cache")
 	}

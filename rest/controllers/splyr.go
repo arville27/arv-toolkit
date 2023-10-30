@@ -2,40 +2,34 @@ package controllers
 
 import (
 	"arville27/arv-toolkit/modules/splyr"
-	"errors"
+	rest_model "arville27/arv-toolkit/rest/model"
+	"log/slog"
+	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func GetLyrics(s splyr.SpotifyLyricsService) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		trackId := c.Query("trackId")
+	return func(ctx *fiber.Ctx) error {
+		slog.InfoContext(ctx.Context(), "Test")
+		trackId := ctx.Query("trackId")
 
 		if len(trackId) == 0 {
-			return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
-				"data":  nil,
-				"error": "Missing required query parameter 'trackId'",
-			})
+			return ctx.Status(http.StatusBadRequest).JSON(
+				rest_model.RestErrorResponse(
+					"Missing required query parameter 'trackId'",
+					"Missing Required Field",
+				),
+			)
 		}
 
 		lyrics, err := s.GetLyrics(trackId)
 		if err != nil {
-			var splyrError *splyr.SplyrError
-			if errors.As(err, &splyrError) {
-				return c.Status(fiber.StatusBadRequest).JSON(&fiber.Map{
-					"data":  nil,
-					"error": err.Error(),
-				})
-			}
-			return c.Status(500).JSON(&fiber.Map{
-				"data":  nil,
-				"error": err.Error(),
-			})
+			restError, statusCode := ResolveError(err)
+			return ctx.Status(statusCode).JSON(restError)
 		}
 
-		return c.Status(200).JSON(&fiber.Map{
-			"data":  lyrics,
-			"error": nil,
-		})
+		responseBody := rest_model.RestSuccessResponse(lyrics)
+		return ctx.Status(200).JSON(responseBody)
 	}
 }

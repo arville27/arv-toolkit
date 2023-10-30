@@ -35,6 +35,7 @@ func (server restServer) Start() {
 		cfg.SpotifyTokenCachePath,
 	)
 
+	server.app.Use(middlewares.RequestId)
 	server.app.Use(middlewares.RequestLogger)
 	apiV1 := server.app.Group("/api/v1")
 
