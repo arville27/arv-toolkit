@@ -3,7 +3,6 @@ package controllers
 import (
 	"arville27/arv-toolkit/modules/splyr"
 	rest_model "arville27/arv-toolkit/rest/model"
-	"log/slog"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,7 +10,6 @@ import (
 
 func GetLyrics(s splyr.SpotifyLyricsService) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		slog.InfoContext(ctx.Context(), "Test")
 		trackId := ctx.Query("trackId")
 
 		if len(trackId) == 0 {

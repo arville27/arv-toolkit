@@ -1,8 +1,8 @@
 package rest_model
 
 type RestError struct {
-	ErrorMessage string `json:"error_message"`
 	ErrorCode    string `json:"error_code"`
+	ErrorMessage string `json:"error_message"`
 }
 
 type RestResponse struct {

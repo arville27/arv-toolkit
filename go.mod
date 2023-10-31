@@ -2,10 +2,16 @@ module arville27/arv-toolkit
 
 go 1.21.3
 
-require github.com/gofiber/fiber/v2 v2.50.0
+require (
+	github.com/gofiber/fiber/v2 v2.50.0
+)
+
+require github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/gofiber/contrib/jwt v1.0.7
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.16.7 // indirect
