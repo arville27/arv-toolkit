@@ -1,8 +1,4 @@
-FROM golang:1.21-alpine AS base
-
-
-
-FROM base AS builder
+FROM golang:1.21-alpine AS builder
 
 WORKDIR /build
 
@@ -16,8 +12,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o arv-toolkit
 
 
-
-FROM base AS runner
+FROM alpine:3.18 AS runner
 
 RUN addgroup toolkit && \
     adduser -S -G toolkit toolkit
@@ -27,7 +22,8 @@ RUN mkdir -p /app/data && \
     chown -R toolkit:toolkit /app
 
 WORKDIR /app
-COPY --from=builder --chown=toolkit:toolkit /build/arv-toolkit arv-toolkit
+
+COPY --from=builder /build/arv-toolkit arv-toolkit
 
 EXPOSE 8080
 
