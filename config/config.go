@@ -22,7 +22,7 @@ type Config struct {
 func LoadConfigFromEnv() *Config {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Failed to load config, %v", err)
+		log.Printf("Failed to load config, %v", err)
 	}
 
 	tokenSecret := os.Getenv("AUTH_TOKEN_SECRET")

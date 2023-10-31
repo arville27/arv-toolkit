@@ -1,0 +1,14 @@
+
+services:
+  arv-toolkit:
+    image: arville27/arvtoolkit:latest
+    container_name: arv-toolkit
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080/tcp"
+    restart: always
+    environment:
+      - "AUTH_TOKEN_SECRET=secret"
+      - "AUTH_VALID_CREDENTIALS=username;password"
