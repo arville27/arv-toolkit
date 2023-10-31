@@ -56,6 +56,7 @@ func LoadConfigFromEnv() *Config {
 		RestServerIp:          os.Getenv("REST_SERVER_IP"),
 		RestServerPort:        uint16(port),
 		SpotifyTokenCachePath: tokenCachePath,
+		AuthTokenSecret:       tokenSecret,
 		ValidCredentials:      validCredentials,
 	}
 }
